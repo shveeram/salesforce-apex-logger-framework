@@ -1,18 +1,29 @@
 public class Logger {
     
     public enum LogLevel { DEBUG, INFO, WARN, ERROR }
+    private static Logger instance;
     public static final Logger_Settings__c SETTINGS = Logger_Settings__c.getInstance();
-    
     private static List<LogEntry> bufferEntries = new List<LogEntry>();
 
-    public class LogEntry {
-        public String message;
-        public LogLevel level;
-        public String source;
-        public String sourceRecordId;
-        public String stackTrace;
+    // Prevent direct instantiation
+    private Logger() {}
+    // Public accessor for singleton instance
+    public static Logger get() {
+        if (instance == null) {
+            instance = new Logger();
+        }
+        return instance;
+    }
+
+    private class LogEntry {
+
+        private String message;
+        private LogLevel level;
+        private String source;
+        private String sourceRecordId;
+        private String stackTrace;
         
-        public LogEntry(String message, LogLevel level, String source, String sourceRecordId, String stackTrace) {
+        private LogEntry(String message, LogLevel level, String source, String sourceRecordId, String stackTrace) {
             this.message = message;
             this.level = level == null?LogLevel.INFO:level;
             this.source = source;
@@ -31,17 +42,17 @@ public class Logger {
         return true;
     }
 
-    public static void add(String source, String sourceRecordId, String message, LogLevel level) {
+    public void add(String source, String sourceRecordId, String message, LogLevel level) {
         if (!isEnabled() || !allowLogLevel(level)) return;
         bufferEntries.add(new LogEntry(message, level, source, sourceRecordId, null));
     }
 
-    public static void add(String source, String sourceRecordId, Exception e) {
+    public void add(String source, String sourceRecordId, Exception e) {
         if (!isEnabled()) return;
         bufferEntries.add(new LogEntry(e.getMessage(), LogLevel.ERROR, source, sourceRecordId, e.getStackTraceString()));
     }
 
-    public static void publish() {
+    public void publish() {
         if (!isEnabled() || bufferEntries.isEmpty()) return;
 
         List<Logger__e> events = new List<Logger__e>();

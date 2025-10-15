@@ -11,23 +11,27 @@ private class LoggerTest {
     
     @IsTest
     static void testBasicLoggingAndPublish() {
-        Test.startTest();
-        Logger.add('LoggerTest', null, 'Debug message', Logger.LogLevel.DEBUG);
-        Logger.add('LoggerTest', null, 'Info message', Logger.LogLevel.INFO);
-        Logger.add('LoggerTest', null, 'Warning message', Logger.LogLevel.WARN);
         
-        // simulate an exception log
-        try {
-            Integer x = 1 / 0;
-        } catch (Exception e) {
-            Logger.add('LoggerTest', null, e);
-        }
+        Test.startTest();
+            Logger log = Logger.get();
+            Account acc = new Account(Name = 'Test account 1');
+            insert acc;
+            log.add('LoggerTest', acc.Id, 'Debug message', Logger.LogLevel.DEBUG);
+            log.add('LoggerTest', 'Non-valid ID', 'Info message', Logger.LogLevel.INFO);
+            log.add('LoggerTest', null, 'Warning message', Logger.LogLevel.WARN);
+        
+            // simulate an exception log
+            try {
+                Integer x = 1 / 0;
+            } catch (Exception e) {
+                log.add('LoggerTest', null, e);
+            }
 
-        // Should not throw any exception
-        Logger.publish();
+            // Should not throw any exception
+            log.publish();
         Test.stopTest();
 
-        Logger.publish(); // buffer is already cleared, should do nothing
+        log.publish(); // buffer is already cleared, should do nothing
         System.assertEquals(true, true, 'Publish executed without errors');
     }
 
@@ -38,8 +42,9 @@ private class LoggerTest {
         update s;
 
         Test.startTest();
-        Logger.add('LoggerTest', null, 'Should not log', Logger.LogLevel.INFO);
-        Logger.publish(); // should not publish anything
+            Logger log = Logger.get();
+            log.add('LoggerTest', null, 'Should not log', Logger.LogLevel.INFO);
+            log.publish(); // should not publish anything
         Test.stopTest();
 
         System.assertEquals(true, true, 'Publish executed successfully even when disabled');
@@ -52,11 +57,12 @@ private class LoggerTest {
         update s;
 
         Test.startTest();
-            Logger.add('LoggerTest', null, 'Debug message', Logger.LogLevel.DEBUG);
-            Logger.add('LoggerTest', null, 'Info message', Logger.LogLevel.INFO);
-            Logger.add('LoggerTest', null, 'Warning message', Logger.LogLevel.WARN);
-            Logger.add('LoggerTest', null, 'Error message', Logger.LogLevel.ERROR);
-            Logger.publish();
+            Logger log = Logger.get();
+            log.add('LoggerTest', null, 'Debug message', Logger.LogLevel.DEBUG);
+            log.add('LoggerTest', null, 'Info message', Logger.LogLevel.INFO);
+            log.add('LoggerTest', null, 'Warning message', Logger.LogLevel.WARN);
+            log.add('LoggerTest', null, 'Error message', Logger.LogLevel.ERROR);
+            log.publish();
         Test.stopTest();
 
         System.assertEquals(true, true, 'Publish executed successfully with filter applied');
@@ -65,7 +71,8 @@ private class LoggerTest {
     @IsTest
     static void testPublishWithEmptyBuffer() {
         Test.startTest();
-        Logger.publish(); // should not throw
+            Logger log = Logger.get();
+            log.publish(); // should not throw
         Test.stopTest();
         System.assertEquals(true, true, 'Empty Publish executed successfully');
     }
@@ -73,9 +80,10 @@ private class LoggerTest {
     @IsTest
     static void testBufferClearedAfterPublish() {
         Test.startTest();
-            Logger.add('LoggerTest', null, 'Message A', Logger.LogLevel.INFO);
-            Logger.publish();        
-        	Logger.publish();// Second publish should do nothing (buffer empty)
+            Logger log = Logger.get();
+            log.add('LoggerTest', null, 'Message A', Logger.LogLevel.INFO);
+            log.publish();        
+        	log.publish();// Second publish should do nothing (buffer empty)
         Test.stopTest();
 
         System.assertEquals(true, true, 'Publish cleared after flush');

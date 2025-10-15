@@ -17,29 +17,58 @@ Custom setting configuration called Logger settings has option to enable logging
 
 Once enabled, using in the APEX code is straight-forward. Example below:
 ```java
-Logger.add('DebugConsole', null, 'Test logging 1', Logger.LogLevel.INFO);
-Id accountId = '0014L00000DVugkQAD';
-Decimal accountBalance = AccountService.calculateBalance(accountId);
+Logger log = Logger.get();
+log.add('DebugConsole', null, 'Start of logging', Logger.LogLevel.INFO);
 
-// AccountService
-public class AccountService {
+Map<Id, Account> accountMap = new Map<Id, Account>([SELECT ID, Name FROM Account WHERE Type != null]);
+Map<Id, Decimal> accountBalanceMap = AccountsService.calculateBalance(accountMap.keySet());
+log.add('Debug Console', null, 'accountBalanceMap = '+accountBalanceMap, Logger.LogLevel.INFO);
+log.add('Debug Console', null, 'End of logging', Logger.LogLevel.INFO);
+log.publish();
+
+// AccountsService
+public class AccountsService {
+
     private static final String MODULE_NAME = 'AccountService';
-    public static Decimal calculateBalance(Id accountId) {
-        String sourceMethod = MODULE_NAME+'.'+calculateBalance;
+    public class AccountException extends Exception {}
+    
+    public static Map<Id, Decimal> calculateBalance(Set<Id> accountIds) {
+ 
+        String sourceMethod = MODULE_NAME+'.calculateBalance';
+        Map<Id, Decimal> accountBalanceMap = new Map<Id, Decimal>();
+        Logger log = Logger.get();
         try {
-        	Logger.add(sourceMethod, accountId, 'Step 1', Logger.LogLevel.INFO);
-        	//Do something
-            Logger.add(sourceMethod, accountId, 'Step 2', Logger.LogLevel.INFO);
-            //Do some more
-            Logger.add(sourceMethod, accountId, 'Step 3', Logger.LogLevel.INFO);
+            List<Account> accounts = [SELECT ID, Name, Type FROM Account WHERE Id IN :accountIds];
+            if (accounts.size() == 0) {
+                throw new AccountException('No accounts exists for the account ids = '+accountIds);
+            }
+
+			log.add(sourceMethod, null, 'Total accounts passed = '+accounts.size(), Logger.LogLevel.INFO);
             
-            //At at the publish to persist the buffer to the log object and clear
-            Logger.publish();
+            for (Account account:accounts) {
+                Decimal accountBalance = 0;
+                log.add(sourceMethod, account.Id, 'Step 1 - Account Balance: '+accountBalance, Logger.LogLevel.INFO);
+                             
+                If (account.Type == 'Prospect') {
+                    accountBalance = 0;
+                } else if (account.Type == 'Customer - Direct') {
+                    accountBalance = 10000;
+                } else {
+                    accountBalance = 5000;
+                }
+                
+                log.add(sourceMethod, account.Id, 'Step 2 - Account Type: '+account.Type, Logger.LogLevel.INFO);
+                log.add(sourceMethod, account.Id, 'Step 3 - Account Balance: '+accountBalance, Logger.LogLevel.INFO);                
+                accountBalanceMap.put(account.Id, accountBalance);
+            }
         } catch (Exception e) {
-            Logger.add(sourceMethod, accountId, e);
-            Logger.publish();
-            throw e
+            log.add(sourceMethod, null, e);
+            log.publish();
+            throw e;
         }
+        
+        log.publish();
+        return accountBalanceMap;
     }
 }
 ```
